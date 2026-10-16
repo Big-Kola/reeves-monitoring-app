@@ -1,0 +1,620 @@
+{
+  "equipment": [
+    {
+      "id": "Bowser 01",
+      "type": "Aviation Bowser",
+      "readings": [
+        {
+          "id": "Bowser 01",
+          "type": "Aviation Bowser",
+          "timestamp": "2026-10-15 08:00",
+          "flowRate": 1850,
+          "pressure": 3.6,
+          "filterDp": 0.55,
+          "water": "Clear",
+          "interlock": "Pass",
+          "operatingHours": 1220,
+          "daysUntilService": 21,
+          "notes": "Normal operation"
+        }
+      ],
+      "latest": {
+        "id": "Bowser 01",
+        "type": "Aviation Bowser",
+        "timestamp": "2026-10-15 08:00",
+        "flowRate": 1850,
+        "pressure": 3.6,
+        "filterDp": 0.55,
+        "water": "Clear",
+        "interlock": "Pass",
+        "operatingHours": 1220,
+        "daysUntilService": 21,
+        "notes": "Normal operation"
+      }
+    },
+    {
+      "id": "Bowser 02",
+      "type": "Aviation Bowser",
+      "readings": [
+        {
+          "id": "Bowser 02",
+          "type": "Aviation Bowser",
+          "timestamp": "2026-10-15 08:30",
+          "flowRate": 1380,
+          "pressure": 3.7,
+          "filterDp": 1.2,
+          "water": "Clear",
+          "interlock": "Pass",
+          "operatingHours": 1620,
+          "daysUntilService": 9,
+          "notes": "Example abnormal reading - filter dP high"
+        }
+      ],
+      "latest": {
+        "id": "Bowser 02",
+        "type": "Aviation Bowser",
+        "timestamp": "2026-10-15 08:30",
+        "flowRate": 1380,
+        "pressure": 3.7,
+        "filterDp": 1.2,
+        "water": "Clear",
+        "interlock": "Pass",
+        "operatingHours": 1620,
+        "daysUntilService": 9,
+        "notes": "Example abnormal reading - filter dP high"
+      }
+    },
+    {
+      "id": "Bowser 03",
+      "type": "Aviation Bowser",
+      "readings": [
+        {
+          "id": "Bowser 03",
+          "type": "Aviation Bowser",
+          "timestamp": "2026-10-15 09:00",
+          "flowRate": 1920,
+          "pressure": 3.5,
+          "filterDp": 0.45,
+          "water": "Clear",
+          "interlock": "Pass",
+          "operatingHours": 980,
+          "daysUntilService": 45,
+          "notes": "Normal operation"
+        }
+      ],
+      "latest": {
+        "id": "Bowser 03",
+        "type": "Aviation Bowser",
+        "timestamp": "2026-10-15 09:00",
+        "flowRate": 1920,
+        "pressure": 3.5,
+        "filterDp": 0.45,
+        "water": "Clear",
+        "interlock": "Pass",
+        "operatingHours": 980,
+        "daysUntilService": 45,
+        "notes": "Normal operation"
+      }
+    },
+    {
+      "id": "Bowser 04",
+      "type": "Aviation Bowser",
+      "readings": [
+        {
+          "id": "Bowser 04",
+          "type": "Aviation Bowser",
+          "timestamp": "2026-10-15 09:30",
+          "flowRate": 1200,
+          "pressure": 3.6,
+          "filterDp": 1.2,
+          "water": "Clear",
+          "interlock": "Pass",
+          "operatingHours": 2100,
+          "daysUntilService": 7,
+          "notes": "Example abnormal reading - low flow, high filter dP"
+        }
+      ],
+      "latest": {
+        "id": "Bowser 04",
+        "type": "Aviation Bowser",
+        "timestamp": "2026-10-15 09:30",
+        "flowRate": 1200,
+        "pressure": 3.6,
+        "filterDp": 1.2,
+        "water": "Clear",
+        "interlock": "Pass",
+        "operatingHours": 2100,
+        "daysUntilService": 7,
+        "notes": "Example abnormal reading - low flow, high filter dP"
+      }
+    },
+    {
+      "id": "Bowser 05",
+      "type": "Aviation Bowser",
+      "readings": [
+        {
+          "id": "Bowser 05",
+          "type": "Aviation Bowser",
+          "timestamp": "2026-10-15 10:00",
+          "flowRate": 1780,
+          "pressure": 3.6,
+          "filterDp": 0.6,
+          "water": "Detected",
+          "interlock": "Fail",
+          "operatingHours": 640,
+          "daysUntilService": 30,
+          "notes": "Example critical - water detected and interlock fail"
+        }
+      ],
+      "latest": {
+        "id": "Bowser 05",
+        "type": "Aviation Bowser",
+        "timestamp": "2026-10-15 10:00",
+        "flowRate": 1780,
+        "pressure": 3.6,
+        "filterDp": 0.6,
+        "water": "Detected",
+        "interlock": "Fail",
+        "operatingHours": 640,
+        "daysUntilService": 30,
+        "notes": "Example critical - water detected and interlock fail"
+      }
+    },
+    {
+      "id": "Bowser 07",
+      "type": "Aviation Bowser",
+      "readings": [
+        {
+          "id": "Bowser 07",
+          "type": "Aviation Bowser",
+          "timestamp": "2026-10-15 13:00",
+          "flowRate": 900,
+          "pressure": 4,
+          "filterDp": 1.5,
+          "water": "Detected",
+          "interlock": "Fail",
+          "operatingHours": 500,
+          "daysUntilService": 5,
+          "notes": "watcher test"
+        }
+      ],
+      "latest": {
+        "id": "Bowser 07",
+        "type": "Aviation Bowser",
+        "timestamp": "2026-10-15 13:00",
+        "flowRate": 900,
+        "pressure": 4,
+        "filterDp": 1.5,
+        "water": "Detected",
+        "interlock": "Fail",
+        "operatingHours": 500,
+        "daysUntilService": 5,
+        "notes": "watcher test"
+      }
+    }
+  ],
+  "deliveries": [
+    {
+      "tripId": "TRP-004",
+      "timestamp": "2026-10-15 12:00",
+      "equipmentId": "Peddler 04",
+      "transporter": "Sample Logistics",
+      "truckNumber": "DEF-001",
+      "driver": "Driver 4",
+      "route": "Depot → Station D",
+      "quantityLoaded": 15000,
+      "quantityReceived": 14550,
+      "varianceLitres": 450,
+      "variancePercent": 3,
+      "sealStatus": "Broken",
+      "transitDelay": 2.5,
+      "notes": "Example seal issue and variance"
+    },
+    {
+      "tripId": "TRP-003",
+      "timestamp": "2026-10-15 11:00",
+      "equipmentId": "Peddler 03",
+      "transporter": "Sample Logistics",
+      "truckNumber": "ABC-789",
+      "driver": "Driver 3",
+      "route": "Depot → Station C",
+      "quantityLoaded": 20000,
+      "quantityReceived": 19950,
+      "varianceLitres": 50,
+      "variancePercent": 0.25,
+      "sealStatus": "Intact",
+      "transitDelay": 1,
+      "notes": "Normal delivery"
+    },
+    {
+      "tripId": "TRP-002",
+      "timestamp": "2026-10-15 10:00",
+      "equipmentId": "Peddler 02",
+      "transporter": "Sample Logistics",
+      "truckNumber": "ABC-456",
+      "driver": "Driver 2",
+      "route": "Depot → Station B",
+      "quantityLoaded": 20000,
+      "quantityReceived": 19400,
+      "varianceLitres": 600,
+      "variancePercent": 3,
+      "sealStatus": "Intact",
+      "transitDelay": 3,
+      "notes": "Example abnormal variance - 3%"
+    },
+    {
+      "tripId": "TRP-001",
+      "timestamp": "2026-10-15 09:00",
+      "equipmentId": "Peddler 01",
+      "transporter": "Sample Logistics",
+      "truckNumber": "ABC-123",
+      "driver": "Driver 1",
+      "route": "Depot → Station A",
+      "quantityLoaded": 20000,
+      "quantityReceived": 19880,
+      "varianceLitres": 120,
+      "variancePercent": 0.6,
+      "sealStatus": "Intact",
+      "transitDelay": 0.5,
+      "notes": "Normal example"
+    }
+  ],
+  "maintenance": [
+    {
+      "date": "2026-10-10",
+      "equipmentId": "Bowser 03",
+      "equipmentType": "Aviation Bowser",
+      "faultCategory": "Water",
+      "faultDescription": "Water detected in sample",
+      "downtimeHours": 3,
+      "actionTaken": "Drained tank, inspected for leaks",
+      "technician": "Tech A",
+      "status": "Investigating",
+      "nextServiceDate": "2026-10-24",
+      "notes": "Tank inspection in progress"
+    },
+    {
+      "date": "2026-10-01",
+      "equipmentId": "Peddler 01",
+      "equipmentType": "Diesel Peddler",
+      "faultCategory": "Seal",
+      "faultDescription": "Seal found broken on delivery",
+      "downtimeHours": 1,
+      "actionTaken": "Replaced seal, investigated handling",
+      "technician": "Tech C",
+      "status": "Resolved",
+      "nextServiceDate": "2026-11-01",
+      "notes": "New seal procedures implemented"
+    },
+    {
+      "date": "2026-09-20",
+      "equipmentId": "Bowser 02",
+      "equipmentType": "Aviation Bowser",
+      "faultCategory": "Flow",
+      "faultDescription": "Flow rate below minimum",
+      "downtimeHours": 4,
+      "actionTaken": "Cleaned flow meter and checked pump",
+      "technician": "Tech B",
+      "status": "Resolved",
+      "nextServiceDate": "2026-10-04",
+      "notes": "Flow restored to normal"
+    },
+    {
+      "date": "2026-09-15",
+      "equipmentId": "Bowser 01",
+      "equipmentType": "Aviation Bowser",
+      "faultCategory": "Filter",
+      "faultDescription": "Filter differential pressure high",
+      "downtimeHours": 2,
+      "actionTaken": "Replaced filter element",
+      "technician": "Tech A",
+      "status": "Resolved",
+      "nextServiceDate": "2026-10-29",
+      "notes": "Filter replaced, pressure normalized"
+    }
+  ],
+  "alerts": [
+    {
+      "id": "ALT-1792085037970-kk8cm8d",
+      "timestamp": "2026-10-15 13:00",
+      "equipmentId": "Bowser 07",
+      "category": "maintenance",
+      "severity": "warning",
+      "severityLabel": "Needs Attention",
+      "message": "Service due in 5 day(s). Schedule qualified maintenance.",
+      "status": "Open",
+      "details": {
+        "daysUntilService": 5,
+        "warningDays": 14
+      }
+    },
+    {
+      "id": "ALT-1792085037970-n16enqi",
+      "timestamp": "2026-10-15 13:00",
+      "equipmentId": "Bowser 07",
+      "category": "interlock",
+      "severity": "critical",
+      "severityLabel": "Critical",
+      "message": "Safety/interlock check failed. Qualified technical review required. Status: Fail",
+      "status": "Open",
+      "details": {
+        "interlock": "Fail"
+      }
+    },
+    {
+      "id": "ALT-1792085037970-t24625b",
+      "timestamp": "2026-10-15 13:00",
+      "equipmentId": "Bowser 07",
+      "category": "water",
+      "severity": "critical",
+      "severityLabel": "Critical",
+      "message": "Water condition requires immediate qualified operational review. Detected: Detected",
+      "status": "Open",
+      "details": {
+        "water": "Detected"
+      }
+    },
+    {
+      "id": "ALT-1792085037970-aszjxfn",
+      "timestamp": "2026-10-15 13:00",
+      "equipmentId": "Bowser 07",
+      "category": "filter",
+      "severity": "warning",
+      "severityLabel": "Needs Attention",
+      "message": "Filter differential pressure above configured threshold (1.5 bar). Maximum: 1 bar. Qualified inspection recommended.",
+      "status": "Open",
+      "details": {
+        "filterDp": 1.5,
+        "threshold": 1
+      }
+    },
+    {
+      "id": "ALT-1792085037970-4b5iosu",
+      "timestamp": "2026-10-15 13:00",
+      "equipmentId": "Bowser 07",
+      "category": "flow",
+      "severity": "warning",
+      "severityLabel": "Needs Attention",
+      "message": "Flow rate below configured threshold (900 L/min). Minimum: 1500 L/min",
+      "status": "Open",
+      "details": {
+        "flow": 900,
+        "threshold": 1500
+      }
+    },
+    {
+      "id": "ALT-1792085037909-zrpceil",
+      "timestamp": "2026-10-15 12:00",
+      "equipmentId": "Peddler 04",
+      "category": "seal",
+      "severity": "review",
+      "severityLabel": "Review Required",
+      "message": "Seal not Intact (Broken). Reconciliation and handling review required.",
+      "status": "Open",
+      "details": {
+        "sealStatus": "Broken",
+        "tripId": "TRP-004"
+      }
+    },
+    {
+      "id": "ALT-1792085037909-m2dc00u",
+      "timestamp": "2026-10-15 12:00",
+      "equipmentId": "Peddler 04",
+      "category": "transit-delay",
+      "severity": "review",
+      "severityLabel": "Review Required",
+      "message": "Transit delay exceeds threshold (2.5 hrs). Threshold: 2 hrs",
+      "status": "Open",
+      "details": {
+        "delay": 2.5,
+        "threshold": 2,
+        "tripId": "TRP-004"
+      }
+    },
+    {
+      "id": "ALT-1792085037909-ro1dqnm",
+      "timestamp": "2026-10-15 12:00",
+      "equipmentId": "Peddler 04",
+      "category": "delivery-variance",
+      "severity": "review",
+      "severityLabel": "Review Required",
+      "message": "Delivery variance is 3.00%. Reconciliation required. Threshold: 0.5%",
+      "status": "Open",
+      "details": {
+        "variancePercent": 3,
+        "varianceLitres": 450,
+        "threshold": 0.5,
+        "tripId": "TRP-004"
+      }
+    },
+    {
+      "id": "ALT-1792085037909-e3nc2tq",
+      "timestamp": "2026-10-15 10:00",
+      "equipmentId": "Peddler 02",
+      "category": "transit-delay",
+      "severity": "review",
+      "severityLabel": "Review Required",
+      "message": "Transit delay exceeds threshold (3 hrs). Threshold: 2 hrs",
+      "status": "Open",
+      "details": {
+        "delay": 3,
+        "threshold": 2,
+        "tripId": "TRP-002"
+      }
+    },
+    {
+      "id": "ALT-1792085037909-mytdghe",
+      "timestamp": "2026-10-15 10:00",
+      "equipmentId": "Peddler 02",
+      "category": "delivery-variance",
+      "severity": "review",
+      "severityLabel": "Review Required",
+      "message": "Delivery variance is 3.00%. Reconciliation required. Threshold: 0.5%",
+      "status": "Open",
+      "details": {
+        "variancePercent": 3,
+        "varianceLitres": 600,
+        "threshold": 0.5,
+        "tripId": "TRP-002"
+      }
+    },
+    {
+      "id": "ALT-1792085037909-x46xypy",
+      "timestamp": "2026-10-15 09:00",
+      "equipmentId": "Peddler 01",
+      "category": "delivery-variance",
+      "severity": "review",
+      "severityLabel": "Review Required",
+      "message": "Delivery variance is 0.60%. Reconciliation required. Threshold: 0.5%",
+      "status": "Open",
+      "details": {
+        "variancePercent": 0.6,
+        "varianceLitres": 120,
+        "threshold": 0.5,
+        "tripId": "TRP-001"
+      }
+    },
+    {
+      "id": "ALT-1792085037909-63ubt32",
+      "timestamp": "2026-10-15 10:00",
+      "equipmentId": "Bowser 05",
+      "category": "interlock",
+      "severity": "critical",
+      "severityLabel": "Critical",
+      "message": "Safety/interlock check failed. Qualified technical review required. Status: Fail",
+      "status": "Open",
+      "details": {
+        "interlock": "Fail"
+      }
+    },
+    {
+      "id": "ALT-1792085037909-9ekv3t3",
+      "timestamp": "2026-10-15 10:00",
+      "equipmentId": "Bowser 05",
+      "category": "water",
+      "severity": "critical",
+      "severityLabel": "Critical",
+      "message": "Water condition requires immediate qualified operational review. Detected: Detected",
+      "status": "Open",
+      "details": {
+        "water": "Detected"
+      }
+    },
+    {
+      "id": "ALT-1792085037909-50w7vqu",
+      "timestamp": "2026-10-15 09:30",
+      "equipmentId": "Bowser 04",
+      "category": "maintenance",
+      "severity": "warning",
+      "severityLabel": "Needs Attention",
+      "message": "Service due in 7 day(s). Schedule qualified maintenance.",
+      "status": "Open",
+      "details": {
+        "daysUntilService": 7,
+        "warningDays": 14
+      }
+    },
+    {
+      "id": "ALT-1792085037909-ll8fstm",
+      "timestamp": "2026-10-15 09:30",
+      "equipmentId": "Bowser 04",
+      "category": "filter",
+      "severity": "warning",
+      "severityLabel": "Needs Attention",
+      "message": "Filter differential pressure above configured threshold (1.2 bar). Maximum: 1 bar. Qualified inspection recommended.",
+      "status": "Open",
+      "details": {
+        "filterDp": 1.2,
+        "threshold": 1
+      }
+    },
+    {
+      "id": "ALT-1792085037909-wxu4b1h",
+      "timestamp": "2026-10-15 09:30",
+      "equipmentId": "Bowser 04",
+      "category": "flow",
+      "severity": "warning",
+      "severityLabel": "Needs Attention",
+      "message": "Flow rate below configured threshold (1200 L/min). Minimum: 1500 L/min",
+      "status": "Open",
+      "details": {
+        "flow": 1200,
+        "threshold": 1500
+      }
+    },
+    {
+      "id": "ALT-1792085037909-1fca8v9",
+      "timestamp": "2026-10-15 08:30",
+      "equipmentId": "Bowser 02",
+      "category": "maintenance",
+      "severity": "warning",
+      "severityLabel": "Needs Attention",
+      "message": "Service due in 9 day(s). Schedule qualified maintenance.",
+      "status": "Open",
+      "details": {
+        "daysUntilService": 9,
+        "warningDays": 14
+      }
+    },
+    {
+      "id": "ALT-1792085037909-awsb7rg",
+      "timestamp": "2026-10-15 08:30",
+      "equipmentId": "Bowser 02",
+      "category": "filter",
+      "severity": "warning",
+      "severityLabel": "Needs Attention",
+      "message": "Filter differential pressure above configured threshold (1.2 bar). Maximum: 1 bar. Qualified inspection recommended.",
+      "status": "Open",
+      "details": {
+        "filterDp": 1.2,
+        "threshold": 1
+      }
+    },
+    {
+      "id": "ALT-1792085037909-py7xdr4",
+      "timestamp": "2026-10-15 08:30",
+      "equipmentId": "Bowser 02",
+      "category": "flow",
+      "severity": "warning",
+      "severityLabel": "Needs Attention",
+      "message": "Flow rate below configured threshold (1380 L/min). Minimum: 1500 L/min",
+      "status": "Open",
+      "details": {
+        "flow": 1380,
+        "threshold": 1500
+      }
+    }
+  ],
+  "settings": {
+    "minimumFlow": 1500,
+    "minimumPressure": 2.5,
+    "maximumPressure": 5,
+    "maximumFilterDp": 1,
+    "serviceWarningDays": 14,
+    "deliveryVarianceThreshold": 0.5,
+    "transitDelayThreshold": 2
+  },
+  "processedRecords": {
+    "bowser": [
+      "bowser:2026-10-15 08:00:Bowser 01",
+      "bowser:2026-10-15 08:30:Bowser 02",
+      "bowser:2026-10-15 09:00:Bowser 03",
+      "bowser:2026-10-15 09:30:Bowser 04",
+      "bowser:2026-10-15 10:00:Bowser 05",
+      "bowser:2026-10-15 13:00:Bowser 07"
+    ],
+    "peddler": [
+      "peddler:2026-10-15 09:00:Peddler 01",
+      "peddler:2026-10-15 10:00:Peddler 02",
+      "peddler:2026-10-15 11:00:Peddler 03",
+      "peddler:2026-10-15 12:00:Peddler 04"
+    ],
+    "maintenance": [
+      "maintenance:2026-09-15:Bowser 01",
+      "maintenance:2026-09-20:Bowser 02",
+      "maintenance:2026-10-01:Peddler 01",
+      "maintenance:2026-10-10:Bowser 03"
+    ]
+  },
+  "alertResolutions": []
+}

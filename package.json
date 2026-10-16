@@ -1,0 +1,17 @@
+{
+  "name": "reeves-monitoring-app",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "chokidar": "^5.0.0",
+    "electron": "^44.7.2",
+    "xlsx": "^0.18.5"
+  }
+}

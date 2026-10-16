@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:;">
+  <title>FuelOps Monitor</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">FO</div>
+        <div class="brand-text">
+          <strong>FuelOps</strong>
+          <span>Monitor</span>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <button class="nav-item active" data-page="dashboard"><span class="ico">▦</span> Dashboard</button>
+        <button class="nav-item" data-page="equipment"><span class="ico">⛽</span> Equipment</button>
+        <button class="nav-item" data-page="deliveries"><span class="ico">➜</span> Deliveries</button>
+        <button class="nav-item" data-page="maintenance"><span class="ico">⚙</span> Maintenance</button>
+        <button class="nav-item" data-page="alerts"><span class="ico">⚠</span> Alerts <span class="badge" id="nav-alert-count">0</span></button>
+        <button class="nav-item" data-page="history"><span class="ico">⏱</span> History</button>
+        <button class="nav-item" data-page="settings"><span class="ico">⚙</span> Settings</button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="monitor-state" id="monitor-state">
+          <span class="dot dot-green"></span> Monitoring active
+        </div>
+        <button class="btn btn-ghost full" id="toggle-monitoring">Pause Monitoring</button>
+        <div class="version">Prototype v1.0.0</div>
+      </div>
+    </aside>
+
+    <main class="content">
+      <header class="topbar">
+        <div>
+          <h1 id="page-title">Dashboard</h1>
+          <p class="subtitle" id="page-subtitle">Live operational overview</p>
+        </div>
+        <div class="topbar-right">
+          <button class="btn btn-primary" id="quick-refresh">Refresh</button>
+          <span class="last-updated" id="last-updated">—</span>
+        </div>
+      </header>
+
+      <div class="banner banner-warning">
+        <strong>Prototype</strong> — thresholds shown are demonstration values and must be
+        replaced with approved equipment and company limits.
+      </div>
+
+      <div id="notification-area" class="notification-area"></div>
+
+      <section id="page-dashboard" class="page active"></section>
+      <section id="page-equipment" class="page"></section>
+      <section id="page-deliveries" class="page"></section>
+      <section id="page-maintenance" class="page"></section>
+      <section id="page-alerts" class="page"></section>
+      <section id="page-history" class="page"></section>
+      <section id="page-settings" class="page"></section>
+    </main>
+  </div>
+
+  <div id="modal-root"></div>
+  <script src="renderer.js"></script>
+</body>
+</html>

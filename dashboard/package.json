@@ -1,0 +1,54 @@
+{
+  "name": "fuelops-monitor",
+  "version": "1.0.0",
+  "description": "FuelOps Monitor - Windows desktop monitoring prototype for aviation fuel bowsers, diesel peddlers, deliveries and maintenance.",
+  "main": "main.js",
+  "productName": "FuelOps Monitor",
+  "author": "FuelOps",
+  "license": "UNLICENSED",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron .",
+    "smoke": "FUELOPS_SMOKE=1 electron .",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win",
+    "build:win:cross": "electron-builder --win -c.win.signAndEditExecutable=false"
+  },
+  "build": {
+    "appId": "com.fuelops.monitor",
+    "productName": "FuelOps Monitor",
+    "asar": false,
+    "directories": {
+      "output": "dist",
+      "buildResources": "assets"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "backend/**/*",
+      "src/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "portable": {
+      "artifactName": "FuelOps-Monitor-${version}-portable.exe"
+    }
+  },
+  "dependencies": {
+    "chokidar": "^3.5.3",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.0.0"
+  }
+}
