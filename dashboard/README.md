@@ -19,6 +19,12 @@ a dashboard with Windows notifications and a system-tray monitor.
 
 ---
 
+## Screenshots
+
+![FuelOps Monitor dashboard overview](screenshots/dashboard-overview.png)
+
+---
+
 ## Workflow
 
 ```
