@@ -7,6 +7,7 @@
 const chokidar = require('chokidar');
 const XLSX = require('xlsx');
 const path = require('path');
+const fs = require('fs');
 const {
   loadData,
   saveData,
@@ -14,7 +15,7 @@ const {
   addDelivery,
   addMaintenance,
   addAlert,
-  isRecordProcessed,
+  getRecordState,
   markRecordProcessed,
   getDashboardStats
 } = require('./storage');
@@ -24,7 +25,7 @@ const {
   detectTrends,
   buildRecurringAlerts
 } = require('./monitoring');
-const { DATA_DIR } = require('./config');
+const { DATA_DIR, STORAGE_DIR } = require('./config');
 
 const FILES = {
   bowser: 'Bowser_Readings.xlsx',
@@ -32,11 +33,43 @@ const FILES = {
   maintenance: 'Maintenance_Log.xlsx'
 };
 
+const LOG_PATH = path.join(STORAGE_DIR, 'watcher.log');
+const MAX_LOG_BYTES = 512 * 1024;
+
 let watchers = {};
 let isMonitoring = true;
 let mainWindow = null;
 let notificationCallback = null;
 let processing = false;
+
+const watcherStatus = {
+  state: 'Starting',
+  startedAt: null,
+  lastChangeAt: null,
+  lastChangeFile: null,
+  lastReadAt: null,
+  lastRowsFound: 0,
+  lastImportAt: null,
+  lastImportCount: 0,
+  lastSkipped: 0,
+  lastError: null
+};
+
+// Console output is invisible for the packaged Windows build, so the same
+// lines are also appended to storage/watcher.log for diagnosis.
+function log(...args) {
+  const line = `[${new Date().toISOString()}] ${args.join(' ')}`;
+  console.log(line);
+  try {
+    fs.mkdirSync(STORAGE_DIR, { recursive: true });
+    if (fs.existsSync(LOG_PATH) && fs.statSync(LOG_PATH).size > MAX_LOG_BYTES) {
+      fs.writeFileSync(LOG_PATH, '');
+    }
+    fs.appendFileSync(LOG_PATH, line + '\n');
+  } catch (err) {
+    console.error('[FuelOps Watcher] Could not write log:', err.message);
+  }
+}
 
 function setMainWindow(window) {
   mainWindow = window;
@@ -48,26 +81,81 @@ function setNotificationCallback(callback) {
 
 function setMonitoring(state) {
   isMonitoring = state;
+  watcherStatus.state = state ? 'Active' : 'Paused';
 }
 
 function getMonitoringState() {
   return isMonitoring;
 }
 
+function sheetToRows(worksheet) {
+  const matrix = XLSX.utils.sheet_to_json(worksheet, {
+    header: 1,
+    defval: '',
+    blankrows: false,
+    raw: true
+  });
+  if (!matrix.length) return [];
+
+  // Trim header cells so a stray space cannot hide a column.
+  const headers = (matrix[0] || []).map(cell => String(cell).trim());
+  const rows = [];
+  for (let r = 1; r < matrix.length; r++) {
+    const raw = matrix[r] || [];
+    const row = {};
+    let hasValue = false;
+    headers.forEach((header, c) => {
+      if (!header) return;
+      const value = raw[c] === undefined ? '' : raw[c];
+      row[header] = value;
+      if (value !== '' && value !== null && value !== undefined) hasValue = true;
+    });
+    if (hasValue) rows.push(row);
+  }
+  return rows;
+}
+
+// Throws on failure so the caller can retry while Excel is still writing.
+function readWorkbook(filePath) {
+  const workbook = XLSX.readFile(filePath);
+  const sheetName = workbook.SheetNames[0];
+  if (!sheetName) throw new Error('No worksheet found');
+  return sheetToRows(workbook.Sheets[sheetName]);
+}
+
 function parseExcelFile(filePath) {
   try {
-    const workbook = XLSX.readFile(filePath);
-    const sheetName = workbook.SheetNames[0];
-    if (!sheetName) {
-      console.warn(`No sheet found in ${path.basename(filePath)}`);
-      return [];
-    }
-    const worksheet = workbook.Sheets[sheetName];
-    return XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+    return readWorkbook(filePath);
   } catch (err) {
-    console.error(`Error reading Excel file ${path.basename(filePath)}:`, err.message);
+    log('[FuelOps Watcher] Workbook read failed:', path.basename(filePath), '-', err.message);
     return [];
   }
+}
+
+// Excel may still be flushing the file when the change event arrives. Retry a
+// few times instead of silently importing nothing.
+async function readWorkbookWithRetry(filePath) {
+  const maxAttempts = 4;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      log('[FuelOps Watcher] Attempting workbook read:', filePath);
+      const rows = readWorkbook(filePath);
+      watcherStatus.lastReadAt = new Date().toISOString();
+      watcherStatus.lastRowsFound = rows.length;
+      watcherStatus.lastError = null;
+      log('[FuelOps Watcher] Workbook read successful. Rows found:', rows.length);
+      return rows;
+    } catch (err) {
+      watcherStatus.lastError = err.message;
+      log('[FuelOps Watcher] Workbook read failed (attempt', `${attempt}/${maxAttempts}):`, err.message);
+      if (attempt === maxAttempts) {
+        log('[FuelOps Watcher] Giving up on read until the next file change.');
+        return [];
+      }
+      await new Promise(resolve => setTimeout(resolve, 250 * attempt));
+    }
+  }
+  return [];
 }
 
 // Returns the first non-empty value found among the supplied keys.
@@ -128,51 +216,94 @@ function normalizeMaintenanceRow(row) {
   };
 }
 
-function processBowserFile(data) {
+async function processBowserFile(data) {
   const added = [];
-  for (const row of parseExcelFile(path.join(DATA_DIR, FILES.bowser))) {
+  const rows = await readWorkbookWithRetry(path.join(DATA_DIR, FILES.bowser));
+  let skipped = 0;
+  for (const row of rows) {
     const normalized = normalizeBowserRow(row);
-    if (!normalized['Equipment ID'] || !normalized.Timestamp) continue;
-    if (isRecordProcessed(data, normalized, 'bowser')) continue;
+    if (!normalized['Equipment ID']) {
+      skipped++;
+      log('[FuelOps Watcher] Skipping Bowser row: missing Equipment ID.');
+      continue;
+    }
+    if (!normalized.Timestamp) {
+      log('[FuelOps Watcher] Bowser row has no Timestamp; identifying by row contents:', normalized['Equipment ID']);
+    }
+    if (getRecordState(data, normalized, 'bowser') === 'processed') {
+      skipped++;
+      continue;
+    }
     try {
-      added.push(addEquipmentReading(data, normalized));
+      const reading = addEquipmentReading(data, normalized);
       markRecordProcessed(data, normalized, 'bowser');
+      added.push(reading);
+      log('[FuelOps Watcher] Importing Bowser', reading.id, '-', new Date().toISOString());
     } catch (err) {
-      console.error('Skipping invalid bowser row:', err.message);
+      skipped++;
+      log('[FuelOps Watcher] Skipping invalid Bowser row:', err.message);
     }
   }
+  log('[FuelOps Watcher] Bowser rows found:', rows.length, 'new:', added.length, 'skipped:', skipped);
+  watcherStatus.lastSkipped = skipped;
   return added;
 }
 
-function processPeddlerFile(data) {
+async function processPeddlerFile(data) {
   const added = [];
-  for (const row of parseExcelFile(path.join(DATA_DIR, FILES.peddler))) {
+  const rows = await readWorkbookWithRetry(path.join(DATA_DIR, FILES.peddler));
+  let skipped = 0;
+  for (const row of rows) {
     const normalized = normalizePeddlerRow(row);
-    if (!normalized['Trip ID'] || !normalized.Timestamp) continue;
-    if (isRecordProcessed(data, normalized, 'peddler')) continue;
+    if (!normalized['Trip ID']) {
+      skipped++;
+      log('[FuelOps Watcher] Skipping Delivery row: missing Trip ID.');
+      continue;
+    }
+    if (getRecordState(data, normalized, 'peddler') === 'processed') {
+      skipped++;
+      continue;
+    }
     try {
-      added.push(addDelivery(data, normalized));
+      const delivery = addDelivery(data, normalized);
       markRecordProcessed(data, normalized, 'peddler');
+      added.push(delivery);
+      log('[FuelOps Watcher] Importing Delivery', delivery.tripId, '-', new Date().toISOString());
     } catch (err) {
-      console.error('Skipping invalid peddler row:', err.message);
+      skipped++;
+      log('[FuelOps Watcher] Skipping invalid Delivery row:', err.message);
     }
   }
+  log('[FuelOps Watcher] Delivery rows found:', rows.length, 'new:', added.length, 'skipped:', skipped);
   return added;
 }
 
-function processMaintenanceFile(data) {
+async function processMaintenanceFile(data) {
   const added = [];
-  for (const row of parseExcelFile(path.join(DATA_DIR, FILES.maintenance))) {
+  const rows = await readWorkbookWithRetry(path.join(DATA_DIR, FILES.maintenance));
+  let skipped = 0;
+  for (const row of rows) {
     const normalized = normalizeMaintenanceRow(row);
-    if (!normalized['Equipment ID'] || !normalized.Date) continue;
-    if (isRecordProcessed(data, normalized, 'maintenance')) continue;
+    if (!normalized['Equipment ID']) {
+      skipped++;
+      log('[FuelOps Watcher] Skipping Maintenance row: missing Equipment ID.');
+      continue;
+    }
+    if (getRecordState(data, normalized, 'maintenance') === 'processed') {
+      skipped++;
+      continue;
+    }
     try {
-      added.push(addMaintenance(data, normalized));
+      const record = addMaintenance(data, normalized);
       markRecordProcessed(data, normalized, 'maintenance');
+      added.push(record);
+      log('[FuelOps Watcher] Importing Maintenance for', record.equipmentId, '-', new Date().toISOString());
     } catch (err) {
-      console.error('Skipping invalid maintenance row:', err.message);
+      skipped++;
+      log('[FuelOps Watcher] Skipping invalid Maintenance row:', err.message);
     }
   }
+  log('[FuelOps Watcher] Maintenance rows found:', rows.length, 'new:', added.length, 'skipped:', skipped);
   return added;
 }
 
@@ -183,11 +314,12 @@ function sendToRenderer(channel, payload) {
 }
 
 function showNotification(title, body) {
+  log('[FuelOps Notification] Sending notification:', title, '-', body);
   if (notificationCallback) {
     try {
       notificationCallback(title, body);
     } catch (err) {
-      console.error('Notification callback failed:', err.message);
+      log('[FuelOps Notification] Callback failed:', err.message);
     }
   }
   sendToRenderer('show-notification', { title, body });
@@ -209,23 +341,40 @@ function notifyAlerts(alerts) {
   }
 }
 
-// Imports any new rows, evaluates rules, persists and notifies.
+let pendingRun = false;
+let pendingForce = false;
+let pendingNotify = false;
+
+// Imports new/changed rows, evaluates rules, persists and notifies.
 // force=true processes even while monitoring is paused (manual entries).
-async function processAllFiles(force = false) {
+// options.notifySummary shows a confirmation toast when rows imported cleanly.
+async function processAllFiles(force = false, options = {}) {
   if (!isMonitoring && !force) return { imported: 0, alerts: 0 };
-  if (processing) return { imported: 0, alerts: 0 };
+  if (processing) {
+    // A save landed while the previous pass was still running. Re-run after it.
+    pendingRun = true;
+    pendingForce = pendingForce || force;
+    pendingNotify = pendingNotify || !!options.notifySummary;
+    return { imported: 0, alerts: 0, queued: true };
+  }
   processing = true;
+  const notifySummary = !!options.notifySummary;
 
   const data = loadData();
   const settings = data.settings;
   const newAlerts = [];
+  const store = data.processedFingerprints || {};
+  const fingerprintCount = () => Object.values(store)
+    .reduce((total, map) => total + Object.keys(map).length, 0);
+  const fingerprintsBefore = fingerprintCount();
 
   try {
-    const newReadings = processBowserFile(data);
-    const newDeliveries = processPeddlerFile(data);
-    const newMaintenance = processMaintenanceFile(data);
+    const newReadings = await processBowserFile(data);
+    const newDeliveries = await processPeddlerFile(data);
+    const newMaintenance = await processMaintenanceFile(data);
     const totalNew = newReadings.length + newDeliveries.length + newMaintenance.length;
 
+    log('[FuelOps Monitoring] Running rules for', totalNew, 'new/changed record(s).');
     for (const reading of newReadings) {
       newAlerts.push(...evaluateEquipmentReading(reading, settings));
     }
@@ -259,56 +408,127 @@ async function processAllFiles(force = false) {
       }
     }
 
+    // Fingerprints may be added when migrating records from an older version,
+    // even when no rows were imported. Persist them so later edits are caught.
+    const fingerprintsChanged = fingerprintCount() !== fingerprintsBefore;
+
+    if (totalNew > 0 || savedAlerts.length > 0 || fingerprintsChanged) {
+      const saved = saveData(data);
+      log('[FuelOps Storage] Record stored:', totalNew, 'new/changed; save returned', String(saved));
+      if (saved && totalNew > 0) {
+        // Read storage back to prove the record is on disk without a restart.
+        const verify = loadData();
+        const verified = verify.processedRecords.bowser.length +
+          verify.processedRecords.peddler.length +
+          verify.processedRecords.maintenance.length;
+        log('[FuelOps Storage] Verify after save: total processed keys =', verified);
+      }
+    }
     if (totalNew > 0 || savedAlerts.length > 0) {
-      saveData(data);
+      log('[FuelOps Renderer] Sending data-updated event.');
       sendToRenderer('data-updated', { stats: getDashboardStats(data) });
     }
 
-    if (savedAlerts.length > 0) notifyAlerts(savedAlerts);
+    if (totalNew > 0) {
+      watcherStatus.lastImportAt = new Date().toISOString();
+      watcherStatus.lastImportCount = totalNew;
+    }
+
+    if (savedAlerts.length > 0) {
+      notifyAlerts(savedAlerts);
+    } else if (totalNew > 0 && notifySummary) {
+      showNotification('FuelOps Monitor — Excel updated',
+        `${totalNew} record(s) imported from Excel. No abnormal conditions detected.`);
+    }
 
     if (totalNew > 0) {
-      console.log(`Imported ${totalNew} new record(s) (${savedAlerts.length} alert(s)).`);
+      log(`[FuelOps Watcher] Imported ${totalNew} new/changed record(s) (${savedAlerts.length} alert(s)).`);
     }
     return { imported: totalNew, alerts: savedAlerts.length };
   } catch (err) {
-    console.error('Error processing Excel files:', err);
+    watcherStatus.lastError = err.message;
+    log('[FuelOps Watcher] Error processing Excel files:', err.message);
     return { imported: 0, alerts: 0, error: err.message };
   } finally {
     processing = false;
+    if (pendingRun) {
+      const nextForce = pendingForce;
+      const nextNotify = pendingNotify;
+      pendingRun = false;
+      pendingForce = false;
+      pendingNotify = false;
+      setTimeout(() => processAllFiles(nextForce, { notifySummary: nextNotify }), 150);
+    }
   }
 }
 
+let debounceTimer = null;
+
+function scheduleProcessing() {
+  if (!isMonitoring) return;
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    debounceTimer = null;
+    processAllFiles(false, { notifySummary: true });
+  }, 300);
+}
+
+function filePathFor(key) {
+  return path.join(DATA_DIR, FILES[key]);
+}
+
 function setupWatchers() {
-  // Excel (and many editors) save by writing a temp file and renaming it over
-  // the target, which produces add/unlink events rather than a plain change.
-  // Polling is the most reliable way to notice those saves on Windows, and we
-  // listen for add as well as change.
+  // Watch the directory, not individual files: Excel saves by writing a temp
+  // file and renaming it over the target, so the watched file can be replaced.
+  // Watching the folder plus polling reliably catches every save on Windows.
+  stopWatchers();
+
+  const filenames = new Set(Object.values(FILES));
   const options = {
     persistent: true,
     usePolling: true,
-    interval: 1000,
+    interval: 700,
     awaitWriteFinish: {
-      stabilityThreshold: 1200,
-      pollInterval: 250
+      stabilityThreshold: 800,
+      pollInterval: 200
     },
-    ignoreInitial: true
+    ignored: /[\\/]~\$/,
+    ignoreInitial: true,
+    depth: 0
   };
 
-  Object.entries(FILES).forEach(([key, filename]) => {
-    const filePath = path.join(DATA_DIR, filename);
-    watchers[key] = chokidar.watch(filePath, options);
+  log('[FuelOps Watcher] Starting watcher');
+  log('[FuelOps Watcher] Bowser file:', filePathFor('bowser'));
+  log('[FuelOps Watcher] Delivery file:', filePathFor('peddler'));
+  log('[FuelOps Watcher] Maintenance file:', filePathFor('maintenance'));
 
-    const trigger = () => {
-      console.log(`Excel file changed: ${filename}`);
-      setTimeout(() => processAllFiles(), 400);
-    };
+  const watcher = chokidar.watch(DATA_DIR, options);
+  watchers.all = watcher;
+  watcherStatus.state = isMonitoring ? 'Active' : 'Paused';
+  watcherStatus.startedAt = new Date().toISOString();
+  watcherStatus.lastError = null;
 
-    watchers[key].on('change', trigger);
-    watchers[key].on('add', trigger);
+  const trigger = (filePath) => {
+    const filename = path.basename(filePath);
+    if (!filenames.has(filename)) return; // ignore Excel lock/temp files
+    watcherStatus.lastChangeAt = new Date().toISOString();
+    watcherStatus.lastChangeFile = filePath;
+    log('[FuelOps Watcher] Change detected:', filePath);
+    scheduleProcessing();
+  };
 
-    watchers[key].on('error', (err) => {
-      console.error(`Watcher error for ${filename}:`, err.message);
-    });
+  watcher.on('add', trigger);
+  watcher.on('change', trigger);
+  watcher.on('unlink', (filePath) => {
+    const filename = path.basename(filePath);
+    if (filenames.has(filename)) {
+      log('[FuelOps Watcher] File removed (waiting for replacement):', filename);
+    }
+  });
+  watcher.on('error', (err) => {
+    watcherStatus.lastError = err.message;
+    watcherStatus.state = 'Error';
+    log('[FuelOps Watcher] Watcher error:', err.message);
   });
 
   // Import whatever is already present on startup.
@@ -322,9 +542,60 @@ function stopWatchers() {
   watchers = {};
 }
 
+function reconnectWatchers() {
+  log('[FuelOps Watcher] Reconnect requested.');
+  setupWatchers();
+  return getStatus();
+}
+
+function getStatus() {
+  const files = Object.entries(FILES).map(([key, name]) => {
+    const filePath = filePathFor(key);
+    let exists = false;
+    try { exists = fs.existsSync(filePath); } catch (err) { exists = false; }
+    return { key, name, path: filePath, exists };
+  });
+  const missing = files.filter(f => !f.exists);
+  let state = isMonitoring ? 'Active' : 'Paused';
+  if (missing.length) state = 'Missing File';
+  if (watcherStatus.lastError) state = 'Error';
+  return {
+    ...watcherStatus,
+    state,
+    watching: !!watchers.all,
+    dataDir: DATA_DIR,
+    logPath: LOG_PATH,
+    files,
+    missing
+  };
+}
+
+// Read-only health check of the three workbooks.
+async function checkConnection() {
+  const checks = [];
+  for (const [key, name] of Object.entries(FILES)) {
+    const filePath = filePathFor(key);
+    if (!fs.existsSync(filePath)) {
+      checks.push({ key, name, path: filePath, ok: false, error: 'File not found' });
+      continue;
+    }
+    try {
+      const rows = readWorkbook(filePath);
+      checks.push({ key, name, path: filePath, ok: true, rows: rows.length });
+    } catch (err) {
+      checks.push({ key, name, path: filePath, ok: false, error: err.message });
+    }
+  }
+  log('[FuelOps Watcher] Connection check:', checks.map(c => `${c.name}=${c.ok ? c.rows + ' rows' : c.error}`).join('; '));
+  return { status: getStatus(), checks };
+}
+
 module.exports = {
   setupWatchers,
   stopWatchers,
+  reconnectWatchers,
+  getStatus,
+  checkConnection,
   processAllFiles,
   parseExcelFile,
   normalizeBowserRow,
@@ -334,6 +605,7 @@ module.exports = {
   setNotificationCallback,
   setMonitoring,
   getMonitoringState,
+  log,
   FILES,
   DATA_DIR
 };

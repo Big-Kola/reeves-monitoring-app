@@ -13,6 +13,8 @@ const state = {
   alertCount: 0
 };
 
+let settingsStatusTimer = null;
+
 const PAGE_META = {
   dashboard: ['Dashboard', 'Live operational overview'],
   equipment: ['Equipment', 'Asset health and latest readings'],
@@ -245,6 +247,10 @@ const RENDERERS = {
 };
 
 function navigate(pageName) {
+  if (settingsStatusTimer) {
+    clearInterval(settingsStatusTimer);
+    settingsStatusTimer = null;
+  }
   state.page = pageName;
   const [title, subtitle] = PAGE_META[pageName] || ['FuelOps', ''];
   document.getElementById('page-title').textContent = title;
@@ -1149,6 +1155,110 @@ async function renderSettings() {
   };
   p.append(save);
   root.append(p);
+
+  const conn = panel('Excel Connection');
+  const connText = el('p');
+  connText.style.margin = '0 0 10px';
+  connText.style.fontSize = '0.85rem';
+  connText.append(document.createTextNode(
+    'FuelOps watches the folder below continuously. Adding a row or changing cells in any of the three workbooks is imported and evaluated within about a second (no refresh needed).'
+  ));
+  conn.append(connText);
+
+  const stateLine = el('div');
+  stateLine.style.margin = '4px 0 10px';
+  stateLine.append(el('span', null, 'Status: '));
+  const stateValue = el('span', null, '…');
+  stateValue.style.fontWeight = '600';
+  stateLine.append(stateValue);
+  conn.append(stateLine);
+
+  function infoRow(label) {
+    const line = el('div');
+    line.style.margin = '3px 0';
+    line.style.fontSize = '0.82rem';
+    const l = el('span', null, `${label}: `);
+    l.style.opacity = '0.75';
+    const v = el('span', null, '—');
+    v.style.wordBreak = 'break-all';
+    line.append(l, v);
+    conn.append(line);
+    return v;
+  }
+
+  const dataDirValue = infoRow('Watched Data Folder');
+  const bowserValue = infoRow('Bowser File');
+  const peddlerValue = infoRow('Delivery File');
+  const maintenanceValue = infoRow('Maintenance File');
+  const lastChangeValue = infoRow('Last File Change Detected');
+  const lastImportValue = infoRow('Last Successful Import');
+  const lastImportCountValue = infoRow('Last Import');
+  const lastSkippedValue = infoRow('Rows Skipped (last read)');
+  const lastErrorValue = infoRow('Last Watcher Error');
+
+  const buttons = el('div');
+  buttons.style.marginTop = '12px';
+  buttons.style.display = 'flex';
+  buttons.style.gap = '8px';
+  buttons.style.flexWrap = 'wrap';
+
+  const openFolder = el('button', 'btn', 'Open Data Folder');
+  openFolder.onclick = async () => {
+    const res = await api.openDataFolder();
+    if (!res.ok) toast('critical', 'Could not open folder', res.error || 'Unknown error');
+  };
+
+  const reconnect = el('button', 'btn', 'Reconnect Excel Watcher');
+  reconnect.onclick = async () => {
+    reconnect.disabled = true;
+    const status = await api.reconnectWatcher();
+    reconnect.disabled = false;
+    toast('info', 'Watcher reconnected', `Status: ${status.state}`);
+    refreshWatcherStatus();
+  };
+
+  const check = el('button', 'btn', 'Check Connection');
+  check.onclick = async () => {
+    check.disabled = true;
+    const result = await api.checkConnection();
+    check.disabled = false;
+    const bad = (result.checks || []).filter(c => !c.ok);
+    if (bad.length) toast('critical', 'Connection problem', bad.map(c => `${c.name}: ${c.error}`).join('; '));
+    else toast('info', 'Connection OK', result.checks.map(c => `${c.name}: ${c.rows} rows`).join(', '));
+    refreshWatcherStatus();
+  };
+
+  buttons.append(openFolder, reconnect, check);
+  conn.append(buttons);
+  root.append(conn);
+
+  async function refreshWatcherStatus() {
+    try {
+      const s = await api.getWatcherStatus();
+      stateValue.textContent = s.state;
+      stateValue.style.color = s.state === 'Active' ? '#5fd18b'
+        : s.state === 'Paused' ? '#e6b45a' : '#ef6d6d';
+      dataDirValue.textContent = s.dataDir || '—';
+      const byKey = {};
+      (s.files || []).forEach(f => { byKey[f.key] = f; });
+      const fmtFile = f => f ? `${f.path} ${f.exists ? '(found)' : '(MISSING)'}` : '—';
+      bowserValue.textContent = fmtFile(byKey.bowser);
+      peddlerValue.textContent = fmtFile(byKey.peddler);
+      maintenanceValue.textContent = fmtFile(byKey.maintenance);
+      lastChangeValue.textContent = s.lastChangeAt ? `${s.lastChangeAt} (${s.lastChangeFile || ''})` : 'none yet';
+      lastImportValue.textContent = s.lastImportAt || 'none yet';
+      lastImportCountValue.textContent = s.lastImportCount ? `${s.lastImportCount} record(s)` : '0 records';
+      lastSkippedValue.textContent = String(s.lastSkipped ?? 0);
+      lastErrorValue.textContent = s.lastError || 'None';
+    } catch (err) {
+      stateValue.textContent = 'Unavailable';
+      stateValue.style.color = '#ef6d6d';
+    }
+  }
+
+  if (settingsStatusTimer) clearInterval(settingsStatusTimer);
+  refreshWatcherStatus();
+  settingsStatusTimer = setInterval(refreshWatcherStatus, 2000);
 
   const guide = panel('How thresholds drive status');
   const guideText = [

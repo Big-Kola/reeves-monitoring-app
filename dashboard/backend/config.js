@@ -1,10 +1,10 @@
 // FuelOps Monitor - runtime paths
 //
 // Path resolution, in priority order:
-//   1. Portable build  -> store data/storage next to the portable .exe.
-//   2. Packaged build  -> store them in a "FuelOps Monitor" folder on the
-//      Desktop so the Excel workbooks are easy to find and edit.
-//   3. Development     -> the project-local ./data and ./storage folders.
+//   1. Portable build -> keep data/storage in the folder that contains the
+//      .exe, so the app and its Excel workbooks always travel together.
+//   2. Packaged build -> the "FuelOps Monitor App" folder on the Desktop.
+//   3. Development    -> the project-local ./data and ./storage folders.
 
 const path = require('path');
 
@@ -17,12 +17,13 @@ try {
 
 const isPackaged = !!(app && app.isPackaged);
 const portableDir = process.env.PORTABLE_EXECUTABLE_DIR || null;
+const APP_FOLDER_NAME = 'FuelOps Monitor App';
 
 let BASE_DIR;
 if (portableDir) {
   BASE_DIR = portableDir;
 } else if (isPackaged && app.getPath) {
-  BASE_DIR = path.join(app.getPath('desktop'), 'FuelOps Monitor');
+  BASE_DIR = path.join(app.getPath('desktop'), APP_FOLDER_NAME);
 } else {
   BASE_DIR = path.join(__dirname, '..');
 }

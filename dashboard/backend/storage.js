@@ -27,6 +27,11 @@ const DEFAULT_DATA = {
     peddler: [],
     maintenance: []
   },
+  processedFingerprints: {
+    bowser: {},
+    peddler: {},
+    maintenance: {}
+  },
   alertResolutions: []
 };
 
@@ -50,6 +55,12 @@ function deepDefaults(data) {
       peddler: [],
       maintenance: [],
       ...((data && data.processedRecords) || {})
+    },
+    processedFingerprints: {
+      bowser: {},
+      peddler: {},
+      maintenance: {},
+      ...((data && data.processedFingerprints) || {})
     }
   };
 }
@@ -87,21 +98,69 @@ function toNumberOrNull(value) {
 function generateRecordKey(record, type) {
   const timestamp = record.Timestamp || record.Date || record.timestamp || record.date || '';
   const id = record['Equipment ID'] || record['Equipment'] || record['Trip ID'] || record['tripId'] || '';
+  // Rows added without a date still import. Their identity comes from the
+  // row's own values, so an unchanged row is de-duplicated and an edited row
+  // is re-evaluated instead of being ignored.
+  if (!timestamp) {
+    return `${type}:no-ts:${id}:${recordFingerprint(record)}`;
+  }
   return `${type}:${timestamp}:${id}`;
 }
 
-function isRecordProcessed(data, record, type) {
+// A stable fingerprint of every cell in the row. The record key (timestamp +
+// equipment) identifies a row; the fingerprint notices when its values change,
+// so editing an existing Excel row is re-imported and re-evaluated immediately.
+function recordFingerprint(record) {
+  return Object.keys(record || {})
+    .sort()
+    .map(key => `${key}=${JSON.stringify(record[key] ?? '')}`)
+    .join('|');
+}
+
+function getFingerprintStore(data, type) {
+  if (!data.processedFingerprints) data.processedFingerprints = {};
+  if (!data.processedFingerprints[type]) data.processedFingerprints[type] = {};
+  return data.processedFingerprints[type];
+}
+
+// Returns 'new' | 'changed' | 'processed'.
+function getRecordState(data, record, type) {
   const key = generateRecordKey(record, type);
-  return (data.processedRecords[type] || []).includes(key);
+  const store = getFingerprintStore(data, type);
+  const current = recordFingerprint(record);
+
+  if (!(data.processedRecords[type] || []).includes(key)) return 'new';
+
+  // Migration: records imported by an older version have no fingerprint yet.
+  // Remember their current content so future edits can be detected without
+  // re-importing everything on the first launch after updating.
+  if (store[key] === undefined) {
+    store[key] = current;
+    return 'processed';
+  }
+
+  return store[key] === current ? 'processed' : 'changed';
+}
+
+function isRecordProcessed(data, record, type) {
+  return getRecordState(data, record, type) === 'processed';
 }
 
 function markRecordProcessed(data, record, type) {
   if (!data.processedRecords[type]) data.processedRecords[type] = [];
   const key = generateRecordKey(record, type);
+  const store = getFingerprintStore(data, type);
+  store[key] = recordFingerprint(record);
+
   if (!data.processedRecords[type].includes(key)) {
     data.processedRecords[type].push(key);
-    if (data.processedRecords[type].length > 10000) {
-      data.processedRecords[type] = data.processedRecords[type].slice(-5000);
+  }
+
+  if (data.processedRecords[type].length > 10000) {
+    data.processedRecords[type] = data.processedRecords[type].slice(-5000);
+    const live = new Set(data.processedRecords[type]);
+    for (const oldKey of Object.keys(store)) {
+      if (!live.has(oldKey)) delete store[oldKey];
     }
   }
 }
@@ -126,6 +185,10 @@ function addEquipmentReading(data, reading) {
   const existing = data.equipment.find(e => e.id === reading['Equipment ID']);
   if (existing) {
     existing.readings = existing.readings || [];
+    // If this row was edited, replace the old version instead of duplicating it.
+    existing.readings = existing.readings.filter(
+      r => String(r.timestamp) !== String(processedReading.timestamp)
+    );
     existing.readings.unshift(processedReading);
     if (existing.readings.length > 100) existing.readings = existing.readings.slice(0, 100);
     existing.latest = processedReading;
@@ -166,6 +229,10 @@ function addDelivery(data, delivery) {
     notes: delivery.Notes || ''
   };
 
+  // Replace an edited trip rather than showing the same trip twice.
+  data.deliveries = data.deliveries.filter(
+    d => String(d.tripId) !== String(processed.tripId)
+  );
   data.deliveries.unshift(processed);
   if (data.deliveries.length > 500) data.deliveries = data.deliveries.slice(0, 500);
   return processed;
@@ -186,6 +253,12 @@ function addMaintenance(data, record) {
     notes: record.Notes || ''
   };
 
+  // Replace an edited maintenance entry rather than duplicating it.
+  data.maintenance = data.maintenance.filter(m =>
+    !(String(m.date) === String(processed.date) &&
+      String(m.equipmentId) === String(processed.equipmentId) &&
+      String(m.faultCategory) === String(processed.faultCategory))
+  );
   data.maintenance.unshift(processed);
   if (data.maintenance.length > 500) data.maintenance = data.maintenance.slice(0, 500);
   return processed;
@@ -363,7 +436,9 @@ module.exports = {
   getDashboardStats,
   getHistory,
   isRecordProcessed,
+  getRecordState,
   markRecordProcessed,
+  recordFingerprint,
   alertSignature,
   toNumberOrNull,
   DEFAULT_DATA

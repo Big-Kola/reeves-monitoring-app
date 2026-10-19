@@ -100,8 +100,8 @@ system tray when the window is closed.
 ## Excel automation
 
 Watched files. In development they are in `dashboard/data/`; in the packaged /
-portable build they are in a `FuelOps Monitor` folder on your **Desktop**
-(`Desktop\FuelOps Monitor\data`).
+portable build they are in a `FuelOps Monitor App` folder on your **Desktop**
+(`Desktop\FuelOps Monitor App\data`), next to the portable executable.
 
 | File | Purpose |
 | --- | --- |
@@ -115,7 +115,7 @@ When you save a workbook the watcher:
 2. reads the workbook
 3. parses new rows
 4. validates and skips invalid/blank rows
-5. de-duplicates already-seen rows
+5. de-duplicates unchanged rows, and re-imports rows whose cells were edited
 6. persists to `storage/app-data.json`
 7. runs the monitoring rules
 8. creates alerts
@@ -233,10 +233,12 @@ Only **Exit** terminates the app.
 settings, processed-record keys and alert resolutions. If the file is missing it
 is recreated; if it is corrupt the app falls back to safe defaults.
 
-In the portable / packaged build, `data` and `storage` live in a
-`FuelOps Monitor` folder on your **Desktop**, next to the app, so the Excel
-workbooks are easy to find and edit. (Development keeps them in the project
-folder.)
+In the portable build, `data` and `storage` live in the same
+`FuelOps Monitor App` folder as the executable, so the app and its Excel
+workbooks always travel together. A non-portable packaged build uses the
+`FuelOps Monitor App` folder on your **Desktop**. The exact path is shown on the
+**Settings** page, which also has an **Open Excel Folder** button. (Development
+keeps them in the project folder.)
 
 ---
 

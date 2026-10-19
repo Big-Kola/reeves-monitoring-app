@@ -16,6 +16,11 @@ contextBridge.exposeInMainWorld('fuelops', {
   getMaintenance: () => ipcRenderer.invoke('getMaintenance'),
   getHistory: (filters) => ipcRenderer.invoke('getHistory', filters),
   getSettings: () => ipcRenderer.invoke('getSettings'),
+  getDataFolder: () => ipcRenderer.invoke('getDataFolder'),
+  openDataFolder: () => ipcRenderer.invoke('openDataFolder'),
+  getWatcherStatus: () => ipcRenderer.invoke('getWatcherStatus'),
+  reconnectWatcher: () => ipcRenderer.invoke('reconnectWatcher'),
+  checkConnection: () => ipcRenderer.invoke('checkConnection'),
 
   // Mutations
   updateSettings: (settings) => ipcRenderer.invoke('updateSettings', settings),

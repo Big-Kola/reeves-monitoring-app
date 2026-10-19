@@ -173,9 +173,11 @@ function createTray() {
 // ---------------------------------------------------------------------------
 
 function sendNotification(title, body) {
-  console.log(`[notification] ${title}: ${body}`);
-  if (!Notification.isSupported()) return;
+  const supported = Notification.isSupported();
+  excelWatcher.log(`[FuelOps Notification] Supported: ${supported}`, '-', title, '-', body);
+  if (!supported) return;
   try {
+    excelWatcher.log('[FuelOps Notification] Showing notification for', title);
     const notification = new Notification({
       title,
       body,
@@ -184,7 +186,7 @@ function sendNotification(title, body) {
     notification.on('click', showWindow);
     notification.show();
   } catch (err) {
-    console.error('Failed to show notification:', err.message);
+    excelWatcher.log('[FuelOps Notification] Failed:', err.message);
   }
 }
 
@@ -386,6 +388,22 @@ function registerIpc() {
     setMonitoring(!!state);
     return excelWatcher.getMonitoringState();
   });
+
+  ipcMain.handle('getDataFolder', () => ({
+    dataDir: excelWatcher.DATA_DIR,
+    files: excelWatcher.FILES
+  }));
+
+  ipcMain.handle('openDataFolder', async () => {
+    const error = await shell.openPath(excelWatcher.DATA_DIR);
+    return { ok: !error, error: error || undefined };
+  });
+
+  ipcMain.handle('getWatcherStatus', () => excelWatcher.getStatus());
+
+  ipcMain.handle('reconnectWatcher', () => excelWatcher.reconnectWatchers());
+
+  ipcMain.handle('checkConnection', () => excelWatcher.checkConnection());
 }
 
 function getDeliveryStatus(delivery, settings) {
@@ -458,6 +476,7 @@ if (!gotLock) {
 
     excelWatcher.setMainWindow(mainWindow);
     excelWatcher.setNotificationCallback(sendNotification);
+    excelWatcher.log('[FuelOps Watcher] Watching data folder:', excelWatcher.DATA_DIR);
     excelWatcher.setupWatchers();
 
     app.on('activate', () => {
